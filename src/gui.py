@@ -10,6 +10,7 @@ class Connect6GUI:
         self.game = Connect6Game(size=size)
         self.size = size
         self.cell_size = 25  # Size of each cell in pixels
+        self.margin = self.cell_size  # Space around the board for labels/border
         self.selected_moves = []  # Moves selected in current turn
         self.game_over = False
         
@@ -32,7 +33,8 @@ class Connect6GUI:
         self.status_label.pack()
         
         # Canvas for the board
-        canvas_size = self.size * self.cell_size
+        board_pixel_size = self.size * self.cell_size
+        canvas_size = board_pixel_size + self.margin * 2
         self.canvas = tk.Canvas(
             main_frame,
             width=canvas_size,
@@ -87,22 +89,41 @@ class Connect6GUI:
         """Draw the grid lines on the canvas."""
         self.canvas.delete("all")
         
+        board_start = self.margin
+        board_end = self.margin + self.size * self.cell_size
+        line_start = board_start + self.cell_size // 2
+        line_end = board_end - self.cell_size // 2
+
+        # Draw board border
+        self.canvas.create_rectangle(
+            board_start,
+            board_start,
+            board_end,
+            board_end,
+            outline="black",
+            width=3
+        )
+
         # Draw grid lines
         for i in range(self.size):
             # Vertical lines
-            x = i * self.cell_size + self.cell_size // 2
+            x = line_start + i * self.cell_size
             self.canvas.create_line(
-                x, self.cell_size // 2,
-                x, (self.size - 1) * self.cell_size + self.cell_size // 2,
-                fill="black", width=1
+                x, line_start,
+                x, line_end,
+                fill="black",
+                width=1
             )
             # Horizontal lines
-            y = i * self.cell_size + self.cell_size // 2
+            y = line_start + i * self.cell_size
             self.canvas.create_line(
-                self.cell_size // 2, y,
-                (self.size - 1) * self.cell_size + self.cell_size // 2, y,
-                fill="black", width=1
+                line_start, y,
+                line_end, y,
+                fill="black",
+                width=1
             )
+
+        self.draw_labels()
         
         # Draw stones
         for i in range(self.size):
@@ -116,8 +137,8 @@ class Connect6GUI:
     
     def draw_stone(self, x, y, player):
         """Draw a stone at position (x, y) for the given player."""
-        center_x = y * self.cell_size + self.cell_size // 2
-        center_y = x * self.cell_size + self.cell_size // 2
+        center_x = self.margin + y * self.cell_size + self.cell_size // 2
+        center_y = self.margin + x * self.cell_size + self.cell_size // 2
         radius = self.cell_size // 2 - 2
         
         if player == 'X':
@@ -134,8 +155,8 @@ class Connect6GUI:
     
     def highlight_cell(self, x, y):
         """Highlight a cell to show it's selected."""
-        center_x = y * self.cell_size + self.cell_size // 2
-        center_y = x * self.cell_size + self.cell_size // 2
+        center_x = self.margin + y * self.cell_size + self.cell_size // 2
+        center_y = self.margin + x * self.cell_size + self.cell_size // 2
         radius = self.cell_size // 2 - 1
         
         # Draw a circle to indicate selection
@@ -151,8 +172,14 @@ class Connect6GUI:
             return
         
         # Convert pixel coordinates to grid coordinates
-        col = (event.x - self.cell_size // 2) // self.cell_size
-        row = (event.y - self.cell_size // 2) // self.cell_size
+        board_start = self.margin
+        board_end = self.margin + self.size * self.cell_size
+
+        if not (board_start <= event.x < board_end and board_start <= event.y < board_end):
+            return
+
+        col = int((event.x - board_start) // self.cell_size)
+        row = int((event.y - board_start) // self.cell_size)
         
         # Check if click is within bounds
         if not (0 <= row < self.size and 0 <= col < self.size):
@@ -178,7 +205,12 @@ class Connect6GUI:
         
         # If we have the required number of moves, play the turn
         if len(self.selected_moves) == required_moves:
-            self.play_turn()
+            if self.confirm_selection():
+                self.play_turn()
+            else:
+                self.selected_moves = []
+                self.update_status()
+                self.draw_grid()
     
     def play_turn(self):
         """Play the selected moves."""
@@ -232,6 +264,56 @@ class Connect6GUI:
         self.game_over = False
         self.draw_grid()
         self.update_status()
+
+    def draw_labels(self):
+        """Draw row and column labels around the board."""
+        label_font = ("Arial", 10, "bold")
+        half_cell = self.cell_size / 2
+        board_start = self.margin
+        board_end = self.margin + self.size * self.cell_size
+
+        for index in range(self.size):
+            label_value = str(index + 1)
+            x_position = board_start + index * self.cell_size + half_cell
+            y_position = board_start + index * self.cell_size + half_cell
+
+            # Column labels (top and bottom)
+            self.canvas.create_text(
+                x_position,
+                board_start - half_cell,
+                text=label_value,
+                font=label_font
+            )
+            self.canvas.create_text(
+                x_position,
+                board_end + half_cell,
+                text=label_value,
+                font=label_font
+            )
+
+            # Row labels (left and right)
+            self.canvas.create_text(
+                board_start - half_cell,
+                y_position,
+                text=label_value,
+                font=label_font
+            )
+            self.canvas.create_text(
+                board_end + half_cell,
+                y_position,
+                text=label_value,
+                font=label_font
+            )
+
+    def confirm_selection(self):
+        """Ask the player to confirm the selected moves before playing."""
+        moves_text = ", ".join(
+            f"({row + 1}, {col + 1})" for row, col in self.selected_moves
+        )
+        return messagebox.askyesno(
+            "Confirm Moves",
+            f"Play moves {moves_text}?"
+        )
     
     def run(self):
         """Start the GUI main loop."""

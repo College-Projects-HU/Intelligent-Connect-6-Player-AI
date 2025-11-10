@@ -54,17 +54,21 @@ class Connect6Game:
 
         seen = set()
         for (x, y) in moves:
+            display_x, display_y = x + 1, y + 1
             # Check coordinate types and bounds
             if not (isinstance(x, int) and isinstance(y, int)):
                 return False, "Coordinates must be integers."
             if not (0 <= x < self.board.size and 0 <= y < self.board.size):
-                return False, f"Move ({x}, {y}) is out of bounds."
+                return False, (
+                    f"Move ({display_x}, {display_y}) is out of bounds. "
+                    f"Valid indices are 1 to {self.board.size}."
+                )
             # Check cell is empty
             if self.board.grid[x][y] != '.':
-                return False, f"Cell ({x}, {y}) is already occupied."
+                return False, f"Cell ({display_x}, {display_y}) is already occupied."
             # Check for duplicates within the same turn
             if (x, y) in seen:
-                return False, f"Duplicate move ({x}, {y}) in the same turn."
+                return False, f"Duplicate move ({display_x}, {display_y}) in the same turn."
             seen.add((x, y))
 
         return True, ""

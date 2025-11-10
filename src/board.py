@@ -17,8 +17,8 @@ class Board:
 
         print("    ", end="")  # Add padding before column numbers
         for col in range(self.size):
-            # Each column number is right-aligned with width 2
-            print(f"{col:2}", end=" ")
+            # Each column number is right-aligned with width 2 (1-indexed for display)
+            print(f"{col + 1:2}", end=" ")
         print()  # New line after column numbers
 
         # Print a separating line for clarity
@@ -26,7 +26,7 @@ class Board:
 
         # Print each row with its row number at the start
         for row_index, row in enumerate(self.grid):
-            print(f"{row_index:2} |", end=" ")  # Row number and separator
+            print(f"{row_index + 1:2} |", end=" ")  # Row number (1-indexed) and separator
             for cell in row:
                 print(cell, end="  ")
             print()  # New line at the end of each row
