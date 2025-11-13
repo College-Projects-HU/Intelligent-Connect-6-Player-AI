@@ -1,5 +1,5 @@
 # src/board.py
-import constants as c
+import src.constants as c
 class Board:
     def __init__(self, size=c.BOARD_SIZE):
         """
