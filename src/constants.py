@@ -1,2 +1,7 @@
+DEFUALT_DEPTH = 3
+
 BOARD_SIZE = 19
 EMPTY = '.'
+
+PLAYER = 'X'
+AI = 'O'
