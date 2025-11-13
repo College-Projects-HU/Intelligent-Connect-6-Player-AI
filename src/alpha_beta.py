@@ -46,27 +46,29 @@ class AlphaBetaPruning:
     def max_node(self, game, depth, alpha, beta):
         max_score = -math.inf
         orig_r, orig_c = game.last_row, game.last_col
-        outer_break = False  # For pruning
+        outer_break = False  # pruning ya 4bab
         
         moves = game.get_available_moves()
         
-        for i, (x1, y1) in moves:
+        for i in range(len(moves)):
+            x1, y1 = moves[i]
             game.board[x1][y1] = game.current_player  # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
 
-            for (x2, y2) in moves:
-                # SET SECOND STONE
-                game.board[x2][y2] = game.current_player
+            for j in range(i + 1, len(moves)):
+                x2, y2 = moves[j]
+                
+                game.board[x2][y2] = game.current_player # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
 
-
-                # What's going to happen from now on? (this comment for me to remind myself)
+                # What's going to happen from now on? (this comment for me to remind myself cus I get lost very often)
                 score = self.alpha_beta(game, depth - 1, alpha, beta, False)
 
-                # Reset second stone
+                # clear 2nd stone
                 game.board[x2][y2] = c.EMPTY
+                
                 # Restore state to *after move 1*
                 game.last_row = x1
                 game.last_col = y1
@@ -77,6 +79,7 @@ class AlphaBetaPruning:
                 if beta <= alpha:
                     outer_break = True
                     break
+
             # Reset first stone
             game.board[x1][y1] = c.EMPTY
 
@@ -87,45 +90,50 @@ class AlphaBetaPruning:
         return max_score
         
     def min_node(self, game, depth, alpha, beta):
-            min_score = math.inf
-            # 1. Save the state *once*
-            orig_r, orig_c = game.last_row, game.last_col
+        min_score = math.inf
+        orig_r, orig_c = game.last_row, game.last_col
+        outer_break = False  # pruning ya 4bab
+        
+        moves = game.get_available_moves()
+        
+        for i in range(len(moves)):
+            x1, y1 = moves[i]
+            game.board[x1][y1] = game.current_player  # SET FIRST STONE
+            game.last_row = x1
+            game.last_col = y1
     
-            outer_break = False
-            for (x1, y1) in game.get_all_legal_moves():
-                game.board[x1][y1] = connect6.PLAYER_1
+            for j in range(i + 1, len(moves)):
+                x2, y2 = moves[j]
+                
+                game.board[x2][y2] = game.current_player  # SET SECOND STONE
+                game.last_row = x2
+                game.last_col = y2
+    
+                # What's going to happen from now on?
+                score = self.alpha_beta(game, depth - 1, alpha, beta, True)  # True for maximizing next
+    
+                # clear 2nd stone
+                game.board[x2][y2] = c.EMPTY
+                
+                # Restore state to *after move 1*
                 game.last_row = x1
                 game.last_col = y1
     
-                for (x2, y2) in game.get_all_legal_moves():
-                    game.board[x2][y2] = connect6.PLAYER_1
-                    game.last_row = x2
-                    game.last_col = y2
-    
-                    score = alpha_beta(game, depth - 1, alpha, beta, True)
-    
-                    # Undo move 2
-                    game.board[x2][y2] = c.EMPTY
-                    # Restore state to *after move 1*
-                    game.last_row = x1
-                    game.last_col = y1
-    
-                    min_score = min(min_score, score)
-                    beta = min(beta, score)
-                    if beta <= alpha:
-                        outer_break = True
-                        break
-    
-                # Undo move 1
-                game.board[x1][y1] = c.EMPTY
-                if outer_break:
+                # MIN score and pruning
+                min_score = min(min_score, score)  # Use min instead of max
+                beta = min(beta, score)  # Update beta instead of alpha
+                if beta <= alpha:  # Same pruning condition
+                    outer_break = True
                     break
     
-            # 2. Restore the *original* state
-            game.last_row = orig_r
-            game.last_col = orig_c
-            return min_score
+            # Reset first stone
+            game.board[x1][y1] = c.EMPTY
     
+            if outer_break: break
+    
+        game.last_row = orig_r
+        game.last_col = orig_c
+        return min_score  # Return min_score instead of max_score
     
     def find_best_move(this, game):
         best_score = -math.inf
