@@ -22,7 +22,7 @@ class AlphaBetaPruning:
         winner = game.get_winner(game.last_x, game.last_y)
         
         if win:
-            return math.inf if winner == c.AI else c.PLAYER
+            return math.inf if winner == c.AI else -math.inf
         elif game.check_draw():
             return 0
         else:
