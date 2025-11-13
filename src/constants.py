@@ -1,0 +1,2 @@
+BOARD_SIZE = 19
+EMPTY = '.'

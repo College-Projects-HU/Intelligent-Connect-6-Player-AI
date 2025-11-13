@@ -1,13 +1,13 @@
 # src/board.py
-
+import constants as c
 class Board:
-    def __init__(self, size=19):
+    def __init__(self, size=c.BOARD_SIZE):
         """
         Initialize the board with a given size (default 19x19).
         Each cell is represented by '.' when it's empty.
         """
         self.size = size
-        self.grid = [['.' for _ in range(size)] for _ in range(size)]
+        self.grid = [[c.EMPTY for _ in range(size)] for _ in range(size)]
 
     def display(self):
         """
@@ -57,6 +57,12 @@ class Board:
             return False
         self.grid[x][y] = player
         return True
+        
+    def undo_move(self, x, y):
+        if self.grid[x][y] != c.EMPTY:
+            self.grid[x][y] = c.EMPTY
+            return True
+        return False
 
     def is_full(self):
         """
