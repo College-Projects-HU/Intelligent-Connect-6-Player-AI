@@ -8,6 +8,7 @@ class Board:
         """
         self.size = size
         self.grid = [['.' for _ in range(size)] for _ in range(size)]
+        self.empty_cells = size * size  # Track empty cells for efficient draw checking
 
     def display(self):
         """
@@ -56,14 +57,23 @@ class Board:
         if not self.is_valid_move(x, y):
             return False
         self.grid[x][y] = player
+        self.empty_cells -= 1  # Decrement empty cells counter
         return True
 
     def is_full(self):
         """
         Check if the board is completely filled.
         This is used to detect a draw condition.
+        Optimized to use empty_cells counter for O(1) check.
         """
-        return all(cell != '.' for row in self.grid for cell in row)
+        return self.empty_cells == 0
+    
+    def get_empty_cells_count(self):
+        """
+        Get the number of empty cells remaining on the board.
+        Returns the count of empty cells.
+        """
+        return self.empty_cells
 
     def copy(self):
         """
@@ -74,4 +84,5 @@ class Board:
         import copy
         new_board = Board(self.size)
         new_board.grid = copy.deepcopy(self.grid)
+        new_board.empty_cells = self.empty_cells  # Copy the empty cells counter
         return new_board

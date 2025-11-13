@@ -1,4 +1,4 @@
-# src/game.py
+# src/game_logic.py
 
 from src.board import Board
 
@@ -52,6 +52,32 @@ class Connect6Game:
             for j in range(self.board.size)
             if self.board.grid[i][j] == '.'
         ]
+    
+    def is_draw(self):
+        """
+        Check if the game is in a draw state.
+        
+        A draw occurs when:
+        1. The board is completely filled, OR
+        2. The board size is even AND there's only 1 empty cell remaining 
+           AND it's not the first move (current player needs 2 moves but only 1 available).
+        
+        Returns:
+            True if the game is a draw, False otherwise.
+        """
+        # Check if board is full
+        if self.board.is_full():
+            return True
+        
+        # Check for the special case: even board size, 1 empty cell, not first move
+        empty_count = self.board.get_empty_cells_count()
+        board_size_even = (self.board.size % 2 == 0)
+        requires_two_moves = not self.first_move
+        
+        if board_size_even and empty_count == 1 and requires_two_moves:
+            return True
+        
+        return False
 
     def get_ai_move(self, depth=3):
         """
@@ -250,8 +276,8 @@ class Connect6Game:
                 print(f"Player {self.current_player} wins!")
                 return True
 
-        # 4. Check for draw (board full)
-        if self.board.is_full():
+        # 4. Check for draw (board full or special even board case)
+        if self.is_draw():
             self.board.display()
             print("It's a draw!")
             return True

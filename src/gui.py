@@ -284,7 +284,7 @@ class Connect6GUI:
             self.update_status()
             
             # Show win/draw message
-            if self.game.board.is_full():
+            if self.game.is_draw():
                 messagebox.showinfo("Game Over", "It's a draw!")
             else:
                 # Winner is the current player (game logic doesn't switch on win)
@@ -420,7 +420,7 @@ class Connect6GUI:
             self.update_status()
             
             # Show win/draw message
-            if self.game.board.is_full():
+            if self.game.is_draw():
                 messagebox.showinfo("Game Over", "It's a draw!")
             else:
                 winner = self.game.current_player
@@ -437,7 +437,7 @@ class Connect6GUI:
     def update_status(self):
         """Update the status label."""
         if self.game_over:
-            if self.game.board.is_full():
+            if self.game.is_draw():
                 self.status_label.config(text="Game Over - It's a draw!")
             else:
                 winner = self.game.current_player

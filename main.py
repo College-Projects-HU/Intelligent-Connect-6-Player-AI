@@ -103,7 +103,7 @@ def main_console():
                 # Attempt to play the atomic turn
                 if game.play_turn(moves):
                     # Game ended
-                    if game.board.is_full():
+                    if game.is_draw():
                         print("It's a draw!")
                     else:
                         winner = game.current_player
@@ -137,7 +137,7 @@ def main_console():
             if game.play_turn(ai_moves):
                 # Game ended
                 game.board.display()
-                if game.board.is_full():
+                if game.is_draw():
                     print("It's a draw!")
                 else:
                     winner = game.current_player
