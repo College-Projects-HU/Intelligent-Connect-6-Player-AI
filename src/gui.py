@@ -6,13 +6,24 @@ from src.game_logic import Connect6Game
 
 
 class Connect6GUI:
-    def __init__(self, size=19):
-        self.game = Connect6Game(size=size)
+    def __init__(self, size=19, human_player='X', ai_player='O', ai_algorithm='minimax'):
+        """
+        Initialize the Connect 6 GUI.
+        
+        Args:
+            size: Board size (default 19x19)
+            human_player: The player symbol for the human ('X' or 'O', default 'X')
+            ai_player: The player symbol for the AI ('X' or 'O', default 'O')
+            ai_algorithm: Which algorithm to use ('minimax' or 'alpha_beta', default 'minimax')
+        """
+        self.game = Connect6Game(size=size, human_player=human_player, ai_player=ai_player, ai_algorithm=ai_algorithm)
         self.size = size
         self.cell_size = 25  # Size of each cell in pixels
         self.margin = self.cell_size  # Space around the board for labels/border
         self.selected_moves = []  # Moves selected in current turn
         self.game_over = False
+        self.human_player = human_player
+        self.ai_player = ai_player
         
         # Create main window
         self.root = tk.Tk()
@@ -26,7 +37,7 @@ class Connect6GUI:
         # Status label
         self.status_label = tk.Label(
             main_frame,
-            text=f"Player {self.game.current_player}'s turn - Place 1 stone",
+            text=f"Your turn (Player {self.human_player}) - Place 1 stone",
             font=("Arial", 12, "bold"),
             pady=10
         )
@@ -78,7 +89,7 @@ class Connect6GUI:
         # Instructions label
         instructions = tk.Label(
             main_frame,
-            text="Click on empty cells to place stones. First move: 1 stone, then 2 stones per turn.",
+            text="Click on empty cells to place stones. First move: 1 stone, then 2 stones per turn. AI will play automatically after your turn.",
             font=("Arial", 9),
             fg="gray",
             wraplength=400
@@ -171,6 +182,11 @@ class Connect6GUI:
         if self.game_over:
             return
         
+        # Only allow clicks during human player's turn
+        if not self.game.is_human_turn():
+            messagebox.showinfo("Not Your Turn", "Please wait for the AI to make its move.")
+            return
+        
         # Convert pixel coordinates to grid coordinates
         board_start = self.margin
         board_end = self.margin + self.size * self.cell_size
@@ -213,7 +229,8 @@ class Connect6GUI:
                 self.draw_grid()
     
     def play_turn(self):
-        """Play the selected moves."""
+        """Play the selected moves for the human player, then trigger AI move if game continues."""
+        # Play human player's turn
         if self.game.play_turn(self.selected_moves):
             # Game ended (win or draw)
             self.game_over = True
@@ -226,29 +243,98 @@ class Connect6GUI:
             else:
                 # Winner is the current player (game logic doesn't switch on win)
                 winner = self.game.current_player
-                messagebox.showinfo("Game Over", f"Player {winner} wins!")
+                if winner == self.human_player:
+                    messagebox.showinfo("Game Over", "Congratulations! You win!")
+                else:
+                    messagebox.showinfo("Game Over", f"AI (Player {self.ai_player}) wins!")
         else:
-            # Game continues
+            # Game continues - clear selection and update display
             self.selected_moves = []
             self.update_status()
             self.draw_grid()
+            
+            # If it's now AI's turn, trigger AI move
+            if self.game.is_ai_turn() and not self.game_over:
+                # Schedule AI move after a short delay to allow GUI to update
+                self.root.after(500, self.play_ai_turn)
     
+    def play_ai_turn(self):
+        """
+        Get and play the AI's move.
+        
+        This method:
+        1. Calls game.get_ai_move() to get the AI's move from the algorithm
+        2. Plays the move using game.play_turn()
+        3. Updates the display
+        4. Checks if game is over
+        
+        TODO: The get_ai_move() method in game_logic.py needs to be fully implemented
+        to call the actual minimax or alpha_beta algorithms.
+        """
+        if self.game_over or not self.game.is_ai_turn():
+            return
+        
+        # Update status to show AI is thinking
+        self.status_label.config(text=f"AI (Player {self.ai_player}) is thinking...")
+        self.root.update()  # Force GUI update
+        
+        # Get AI move from the algorithm
+        # TODO: The get_ai_move() method should call the actual minimax/alpha_beta algorithms
+        # Currently it returns a placeholder. Once the algorithms are implemented,
+        # this will automatically use them.
+        ai_moves = self.game.get_ai_move(depth=3)  # depth can be adjusted for AI strength
+        
+        if not ai_moves:
+            # No valid moves available (shouldn't happen in normal play)
+            messagebox.showwarning("AI Error", "AI could not find a valid move!")
+            return
+        
+        # Play the AI's move
+        if self.game.play_turn(ai_moves):
+            # Game ended (win or draw)
+            self.game_over = True
+            self.draw_grid()
+            self.update_status()
+            
+            # Show win/draw message
+            if self.game.board.is_full():
+                messagebox.showinfo("Game Over", "It's a draw!")
+            else:
+                winner = self.game.current_player
+                if winner == self.human_player:
+                    messagebox.showinfo("Game Over", "Congratulations! You win!")
+                else:
+                    messagebox.showinfo("Game Over", f"AI (Player {self.ai_player}) wins!")
+        else:
+            # Game continues - update display
+            self.update_status()
+            self.draw_grid()
+            # Now it's human player's turn again
+
     def update_status(self):
         """Update the status label."""
         if self.game_over:
             if self.game.board.is_full():
                 self.status_label.config(text="Game Over - It's a draw!")
             else:
-                winner = 'O' if self.game.current_player == 'X' else 'X'
-                self.status_label.config(text=f"Game Over - Player {winner} wins!")
+                winner = self.game.current_player
+                if winner == self.human_player:
+                    self.status_label.config(text="Game Over - You win!")
+                else:
+                    self.status_label.config(text=f"Game Over - AI (Player {self.ai_player}) wins!")
         else:
             required_moves = 1 if self.game.first_move else 2
-            moves_text = f"Place {required_moves} stone(s)"
-            if self.selected_moves:
-                moves_text += f" ({len(self.selected_moves)}/{required_moves} selected)"
-            self.status_label.config(
-                text=f"Player {self.game.current_player}'s turn - {moves_text}"
-            )
+            if self.game.is_human_turn():
+                moves_text = f"Place {required_moves} stone(s)"
+                if self.selected_moves:
+                    moves_text += f" ({len(self.selected_moves)}/{required_moves} selected)"
+                self.status_label.config(
+                    text=f"Your turn (Player {self.human_player}) - {moves_text}"
+                )
+            else:
+                self.status_label.config(
+                    text=f"AI (Player {self.ai_player}) is thinking..."
+                )
     
     def clear_selection(self):
         """Clear the current selection."""
@@ -259,7 +345,12 @@ class Connect6GUI:
     
     def reset_game(self):
         """Reset the game to initial state."""
-        self.game = Connect6Game(size=self.size)
+        self.game = Connect6Game(
+            size=self.size,
+            human_player=self.human_player,
+            ai_player=self.ai_player,
+            ai_algorithm=self.game.ai_algorithm
+        )
         self.selected_moves = []
         self.game_over = False
         self.draw_grid()
