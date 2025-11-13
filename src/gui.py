@@ -1,11 +1,57 @@
 # src/gui.py
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 from src.game_logic import Connect6Game
 
 
 class Connect6GUI:
+    @staticmethod
+    def get_board_size_dialog():
+        """
+        Show a dialog to get board size from user (6-19).
+        
+        Returns:
+            int: Valid board size between 6 and 19, or None if cancelled
+        """
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
+        
+        while True:
+            size_str = simpledialog.askstring(
+                "Board Size",
+                "Enter board size (6-19):",
+                parent=root
+            )
+            
+            if size_str is None:
+                root.destroy()
+                return None  # User cancelled
+            
+            try:
+                size = int(size_str)
+                if size < 6:
+                    messagebox.showerror(
+                        "Invalid Size",
+                        "Board size must be at least 6. Please try again.",
+                        parent=root
+                    )
+                    continue
+                if size > 19:
+                    messagebox.showerror(
+                        "Invalid Size",
+                        "Board size must be at most 19. Please try again.",
+                        parent=root
+                    )
+                    continue
+                root.destroy()
+                return size
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Input",
+                    "Please enter a valid number between 6 and 19.",
+                    parent=root
+                )
     def __init__(self, size=19, human_player='X', ai_player='O', ai_algorithm='minimax'):
         """
         Initialize the Connect 6 GUI.
@@ -16,7 +62,7 @@ class Connect6GUI:
             ai_player: The player symbol for the AI ('X' or 'O', default 'O')
             ai_algorithm: Which algorithm to use ('minimax' or 'alpha_beta', default 'minimax')
         """
-        self.game = Connect6Game(size=size, human_player=human_player, ai_player=ai_player, ai_algorithm=ai_algorithm)
+        self.game = Connect6Game(size=size, human_player=human_player, ai_player=ai_player, ai_algorithm=ai_algorithm, heuristic='heuristic_1')
         self.size = size
         self.cell_size = 25  # Size of each cell in pixels
         self.margin = self.cell_size  # Space around the board for labels/border
@@ -253,10 +299,89 @@ class Connect6GUI:
             self.update_status()
             self.draw_grid()
             
-            # If it's now AI's turn, trigger AI move
+            # If it's now AI's turn, ask user to choose algorithm first
             if self.game.is_ai_turn() and not self.game_over:
-                # Schedule AI move after a short delay to allow GUI to update
-                self.root.after(500, self.play_ai_turn)
+                # Show dialog to choose AI algorithm
+                self.choose_ai_algorithm()
+    
+    def choose_ai_algorithm(self):
+        """Show a dialog to let the user choose the AI algorithm for this turn."""
+        # Create a dialog window
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Choose AI Algorithm")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
+        y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
+        dialog.geometry(f"+{x}+{y}")
+        
+        # Instructions
+        label = tk.Label(
+            dialog,
+            text="Choose AI Algorithm for this turn:",
+            font=("Arial", 11, "bold"),
+            pady=10
+        )
+        label.pack()
+        
+        # Variable to store the choice
+        choice_var = tk.IntVar(value=1)
+        
+        # Radio buttons for each option
+        options = [
+            ("1 - Minimax with 1st heuristic", 1),
+            ("2 - Minimax with 2nd heuristic", 2),
+            ("3 - Alpha-Beta with 1st heuristic", 3),
+            ("4 - Alpha-Beta with 2nd heuristic", 4)
+        ]
+        
+        for text, value in options:
+            rb = tk.Radiobutton(
+                dialog,
+                text=text,
+                variable=choice_var,
+                value=value,
+                font=("Arial", 10),
+                padx=20,
+                pady=5
+            )
+            rb.pack(anchor=tk.W)
+        
+        # Button frame
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=15)
+        
+        def confirm_choice():
+            choice = choice_var.get()
+            if choice == 1:
+                algorithm, heuristic = 'minimax', 'heuristic_1'
+            elif choice == 2:
+                algorithm, heuristic = 'minimax', 'heuristic_2'
+            elif choice == 3:
+                algorithm, heuristic = 'alpha_beta', 'heuristic_1'
+            elif choice == 4:
+                algorithm, heuristic = 'alpha_beta', 'heuristic_2'
+            else:
+                algorithm, heuristic = 'minimax', 'heuristic_1'
+            
+            self.game.set_ai_config(algorithm, heuristic)
+            dialog.destroy()
+            # Schedule AI move after dialog closes
+            self.root.after(100, self.play_ai_turn)
+        
+        confirm_button = tk.Button(
+            button_frame,
+            text="Confirm",
+            command=confirm_choice,
+            font=("Arial", 10),
+            padx=20,
+            pady=5
+        )
+        confirm_button.pack(side=tk.LEFT, padx=5)
     
     def play_ai_turn(self):
         """
@@ -267,21 +392,19 @@ class Connect6GUI:
         2. Plays the move using game.play_turn()
         3. Updates the display
         4. Checks if game is over
-        
-        TODO: The get_ai_move() method in game_logic.py needs to be fully implemented
-        to call the actual minimax or alpha_beta algorithms.
         """
         if self.game_over or not self.game.is_ai_turn():
             return
         
         # Update status to show AI is thinking
-        self.status_label.config(text=f"AI (Player {self.ai_player}) is thinking...")
+        algorithm_name = self.game.ai_algorithm.replace('_', '-').title()
+        heuristic_name = self.game.heuristic.replace('_', ' ').title()
+        self.status_label.config(
+            text=f"AI (Player {self.ai_player}) is thinking using {algorithm_name} with {heuristic_name}..."
+        )
         self.root.update()  # Force GUI update
         
         # Get AI move from the algorithm
-        # TODO: The get_ai_move() method should call the actual minimax/alpha_beta algorithms
-        # Currently it returns a placeholder. Once the algorithms are implemented,
-        # this will automatically use them.
         ai_moves = self.game.get_ai_move(depth=3)  # depth can be adjusted for AI strength
         
         if not ai_moves:
@@ -349,7 +472,8 @@ class Connect6GUI:
             size=self.size,
             human_player=self.human_player,
             ai_player=self.ai_player,
-            ai_algorithm=self.game.ai_algorithm
+            ai_algorithm=self.game.ai_algorithm,
+            heuristic=self.game.heuristic
         )
         self.selected_moves = []
         self.game_over = False

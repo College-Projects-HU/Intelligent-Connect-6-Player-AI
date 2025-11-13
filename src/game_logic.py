@@ -3,7 +3,7 @@
 from src.board import Board
 
 class Connect6Game:
-    def __init__(self, size=19, human_player='X', ai_player='O', ai_algorithm='minimax'):
+    def __init__(self, size=19, human_player='X', ai_player='O', ai_algorithm='minimax', heuristic='heuristic_1'):
         """
         Initialize the Connect 6 game.
         
@@ -12,6 +12,7 @@ class Connect6Game:
             human_player: The player symbol for the human ('X' or 'O', default 'X')
             ai_player: The player symbol for the AI ('X' or 'O', default 'O')
             ai_algorithm: Which algorithm to use ('minimax' or 'alpha_beta', default 'minimax')
+            heuristic: Which heuristic to use ('heuristic_1' or 'heuristic_2', default 'heuristic_1')
         """
         self.board = Board(size)
         self.current_player = 'X'
@@ -19,6 +20,18 @@ class Connect6Game:
         self.human_player = human_player
         self.ai_player = ai_player
         self.ai_algorithm = ai_algorithm  # 'minimax' or 'alpha_beta'
+        self.heuristic = heuristic  # 'heuristic_1' or 'heuristic_2'
+    
+    def set_ai_config(self, algorithm, heuristic):
+        """
+        Set the AI algorithm and heuristic to use.
+        
+        Args:
+            algorithm: 'minimax' or 'alpha_beta'
+            heuristic: 'heuristic_1' or 'heuristic_2'
+        """
+        self.ai_algorithm = algorithm
+        self.heuristic = heuristic
 
     def is_ai_turn(self):
         """Check if it's currently the AI's turn."""
@@ -103,25 +116,18 @@ class Connect6Game:
         - Negative values: Good for human (minimizing player)
         - Zero: Neutral position
         
-        TODO: Implement a proper evaluation function that considers:
-        - Number of stones in a row (2, 3, 4, 5, 6)
-        - Threats (positions that could lead to 6 in a row)
-        - Blocking opponent's threats
-        - Center control
-        - Potential winning positions
-        
         Returns:
             A numerical score representing the position's value.
         """
-        # TODO: Implement evaluation logic
-        # This should analyze the board and return a score
-        # Example approach:
-        # 1. Count sequences of AI stones (2, 3, 4, 5 in a row)
-        # 2. Count sequences of human stones (negative weight)
-        # 3. Check for threats (5 in a row that can be completed)
-        # 4. Return weighted sum of these factors
+        from src.heuristics import heuristic_1, heuristic_2
         
-        return 0  # Placeholder: returns neutral score
+        if self.heuristic == 'heuristic_1':
+            return heuristic_1(self)
+        elif self.heuristic == 'heuristic_2':
+            return heuristic_2(self)
+        else:
+            # Default to heuristic_1 if invalid
+            return heuristic_1(self)
 
     def make_move_copy(self, moves, player):
         """
@@ -140,7 +146,8 @@ class Connect6Game:
             size=self.board.size,
             human_player=self.human_player,
             ai_player=self.ai_player,
-            ai_algorithm=self.ai_algorithm
+            ai_algorithm=self.ai_algorithm,
+            heuristic=self.heuristic
         )
         new_game.board = self.board.copy()
         new_game.current_player = player
