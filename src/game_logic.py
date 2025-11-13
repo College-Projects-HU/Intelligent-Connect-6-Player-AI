@@ -1,23 +1,196 @@
-# src/game.py
+# src/game_logic.py
 
 from src.board import Board
 
 class Connect6Game:
-    def __init__(self, size=19):
+    def __init__(self, size=19, human_player='X', ai_player='O', ai_algorithm='minimax', heuristic='heuristic_1'):
+        """
+        Initialize the Connect 6 game.
+        
+        Args:
+            size: Board size (default 19x19)
+            human_player: The player symbol for the human ('X' or 'O', default 'X')
+            ai_player: The player symbol for the AI ('X' or 'O', default 'O')
+            ai_algorithm: Which algorithm to use ('minimax' or 'alpha_beta', default 'minimax')
+            heuristic: Which heuristic to use ('heuristic_1' or 'heuristic_2', default 'heuristic_1')
+        """
         self.board = Board(size)
         self.current_player = 'X'
         self.first_move = True  # First-ever move: only one stone allowed
+        self.human_player = human_player
+        self.ai_player = ai_player
+        self.ai_algorithm = ai_algorithm  # 'minimax' or 'alpha_beta'
+        self.heuristic = heuristic  # 'heuristic_1' or 'heuristic_2'
+    
+    def set_ai_config(self, algorithm, heuristic):
+        """
+        Set the AI algorithm and heuristic to use.
+        
+        Args:
+            algorithm: 'minimax' or 'alpha_beta'
+            heuristic: 'heuristic_1' or 'heuristic_2'
+        """
+        self.ai_algorithm = algorithm
+        self.heuristic = heuristic
+
+    def is_ai_turn(self):
+        """Check if it's currently the AI's turn."""
+        return self.current_player == self.ai_player
+
+    def is_human_turn(self):
+        """Check if it's currently the human player's turn."""
+        return self.current_player == self.human_player
 
     def switch_player(self):
         self.current_player = 'O' if self.current_player == 'X' else 'X'
 
     def get_available_moves(self):
+        """Get all available empty positions on the board."""
         return [
             (i, j)
             for i in range(self.board.size)
             for j in range(self.board.size)
             if self.board.grid[i][j] == '.'
         ]
+    
+    def is_draw(self):
+        """
+        Check if the game is in a draw state.
+        
+        A draw occurs when:
+        1. The board is completely filled, OR
+        2. The board size is even AND there's only 1 empty cell remaining 
+           AND it's not the first move (current player needs 2 moves but only 1 available).
+        
+        Returns:
+            True if the game is a draw, False otherwise.
+        """
+        # Check if board is full
+        if self.board.is_full():
+            return True
+        
+        # Check for the special case: even board size, 1 empty cell, not first move
+        empty_count = self.board.get_empty_cells_count()
+        board_size_even = (self.board.size % 2 == 0)
+        requires_two_moves = not self.first_move
+        
+        if board_size_even and empty_count == 1 and requires_two_moves:
+            return True
+        
+        return False
+
+    def get_ai_move(self, depth=3):
+        """
+        Get the AI's move using the specified algorithm.
+        
+        This method will call either minimax or alpha_beta algorithm to determine
+        the best move for the AI player.
+        
+        Args:
+            depth: The depth to search in the game tree (default 3)
+                  Higher depth = stronger AI but slower computation
+        
+        Returns:
+            List of moves [(x1, y1), (x2, y2)] for the AI to play.
+            For first move, returns [(x, y)] (single move).
+            Returns empty list if no valid moves available.
+        
+        TODO: This method needs to be implemented to call the actual algorithms.
+        Currently returns a placeholder that picks the first available moves.
+        """
+        available_moves = self.get_available_moves()
+        if not available_moves:
+            return []
+        
+        required_moves = 1 if self.first_move else 2
+        
+        # Call the appropriate AI algorithm
+        # TODO: The algorithms (minimax and alpha_beta) need to be fully implemented
+        # Currently they return placeholder values, so the AI will use a fallback strategy
+        try:
+            if self.ai_algorithm == 'minimax':
+                from src.minimax import minimax
+                score, best_moves = minimax(self, depth, True)  # True = maximizing player (AI)
+                # If algorithm returns valid moves, use them
+                if best_moves and len(best_moves) == required_moves:
+                    # Validate that all moves are still available
+                    if all(move in available_moves for move in best_moves):
+                        return best_moves
+            elif self.ai_algorithm == 'alpha_beta':
+                from src.alpha_beta import alpha_beta
+                score, best_moves = alpha_beta(self, depth, float('-inf'), float('inf'), True)
+                # If algorithm returns valid moves, use them
+                if best_moves and len(best_moves) == required_moves:
+                    # Validate that all moves are still available
+                    if all(move in available_moves for move in best_moves):
+                        return best_moves
+        except Exception as e:
+            # If algorithm implementation has errors, fall back to simple strategy
+            print(f"AI algorithm error (using fallback): {e}")
+        
+        # Fallback: If algorithms are not implemented or return invalid moves,
+        # use a simple strategy (pick first available moves)
+        # TODO: Remove this fallback once algorithms are fully implemented
+        return available_moves[:required_moves]
+
+    def evaluate_position(self):
+        """
+        Evaluate the current board position from the AI's perspective.
+        
+        This is a heuristic function that should return:
+        - Positive values: Good for AI (maximizing player)
+        - Negative values: Good for human (minimizing player)
+        - Zero: Neutral position
+        
+        Returns:
+            A numerical score representing the position's value.
+        """
+        from src.heuristics import heuristic_1, heuristic_2
+        
+        if self.heuristic == 'heuristic_1':
+            return heuristic_1(self)
+        elif self.heuristic == 'heuristic_2':
+            return heuristic_2(self)
+        else:
+            # Default to heuristic_1 if invalid
+            return heuristic_1(self)
+
+    def make_move_copy(self, moves, player):
+        """
+        Create a copy of the game state and apply moves to it.
+        This is used by AI algorithms to simulate moves without modifying the actual game.
+        
+        Args:
+            moves: List of (x, y) tuples to apply
+            player: The player making the moves ('X' or 'O')
+        
+        Returns:
+            A new Connect6Game instance with the moves applied.
+        """
+        # Create a copy of the board
+        new_game = Connect6Game(
+            size=self.board.size,
+            human_player=self.human_player,
+            ai_player=self.ai_player,
+            ai_algorithm=self.ai_algorithm,
+            heuristic=self.heuristic
+        )
+        new_game.board = self.board.copy()
+        new_game.current_player = player
+        new_game.first_move = self.first_move
+        
+        # Apply the moves
+        for x, y in moves:
+            new_game.board.place_move(x, y, player)
+        
+        # Update first_move flag if needed
+        if new_game.first_move:
+            new_game.first_move = False
+        else:
+            # Switch player after applying moves (simulating a turn)
+            new_game.switch_player()
+        
+        return new_game
 
     def check_winner(self, x, y):
         directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
@@ -103,8 +276,8 @@ class Connect6Game:
                 print(f"Player {self.current_player} wins!")
                 return True
 
-        # 4. Check for draw (board full)
-        if self.board.is_full():
+        # 4. Check for draw (board full or special even board case)
+        if self.is_draw():
             self.board.display()
             print("It's a draw!")
             return True
