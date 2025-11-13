@@ -135,22 +135,26 @@ class AlphaBetaPruning:
         game.last_col = orig_c
         return min_score  # Return min_score instead of max_score
     
-    def find_best_move(this, game):
+    def find_best_move(self, game):
         best_score = -math.inf
         best_move = None
         orig_r, orig_c = game.last_row, game.last_col
-        for (x1, y1) in game.get_all_legal_moves():
+        moves = game.get_available_moves()
+        
+        for i in range(len(moves)):
+            x1, y1 = moves[i]
             game.board[x1][y1] = game.current_player # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
-    
-            for (x2, y2) in game.get_all_legal_moves():
+
+            for j in range(i + 1, len(moves)):
+                x2, y2 = moves[j]
                 game.board[x2][y2] = game.current_player # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
     
                 # What's going to happen from now on?
-                score = this.alpha_beta(game, game.depth, -math.inf, math.inf, False)
+                score = self.alpha_beta(game, game.depth, -math.inf, math.inf, False)
     
                 if score >= best_score:
                     best_score = score
