@@ -46,14 +46,14 @@ class AlphaBetaPruning:
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board[x1][y1] = c.AI  # SET FIRST STONE
+            game.board.grid[x1][y1] = c.AI  # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
 
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
                 
-                game.board[x2][y2] = c.AI # SET SECOND STONE
+                game.board.grid[x2][y2] = c.AI # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
 
@@ -61,7 +61,7 @@ class AlphaBetaPruning:
                 score = self.alpha_beta(game, depth - 1, alpha, beta, False)
 
                 # clear 2nd stone
-                game.board[x2][y2] = c.EMPTY
+                game.board.grid[x2][y2] = c.EMPTY
                 
                 # Restore state to *after move 1*
                 game.last_row = x1
@@ -93,14 +93,14 @@ class AlphaBetaPruning:
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board[x1][y1] = c.PLAYER  # SET FIRST STONE
+            game.board.grid[x1][y1] = c.PLAYER  # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
 
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
                 
-                game.board[x2][y2] = c.PLAYER  # SET SECOND STONE
+                game.board.grid[x2][y2] = c.PLAYER  # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
     
@@ -108,7 +108,7 @@ class AlphaBetaPruning:
                 score = self.alpha_beta(game, depth - 1, alpha, beta, True)  # True for maximizing next
     
                 # clear 2nd stone
-                game.board[x2][y2] = c.EMPTY
+                game.board.grid[x2][y2] = c.EMPTY
                 
                 # Restore state to *after move 1*
                 game.last_row = x1
@@ -122,7 +122,7 @@ class AlphaBetaPruning:
                     break
     
             # Reset first stone
-            game.board[x1][y1] = c.EMPTY
+            game.board.grid[x1][y1] = c.EMPTY
     
             if outer_break: break
     
@@ -138,13 +138,13 @@ class AlphaBetaPruning:
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board[x1][y1] = c.AI # SET FIRST STONE
+            game.board.grid[x1][y1] = c.AI # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
 
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
-                game.board[x2][y2] = c.AI # SET SECOND STONE
+                game.board.grid[x2][y2] = c.AI # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
     
@@ -156,12 +156,12 @@ class AlphaBetaPruning:
                     best_move = [(x1, y1), (x2, y2)]
     
                 # Reset second stone
-                game.board[x2][y2] = c.EMPTY
+                game.board.grid[x2][y2] = c.EMPTY
                 # Restore state to *after move 1*
                 game.last_row = x1
                 game.last_col = y1
             # Reset first stone
-            game.board[x1][y1] = c.EMPTY
+            game.board.grid[x1][y1] = c.EMPTY
             # 2. Restore the *original* state
             game.last_row = orig_r
             game.last_col = orig_c
