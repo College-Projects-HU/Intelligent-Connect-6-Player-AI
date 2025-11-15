@@ -1,5 +1,5 @@
-import game_logic as connect6
-import constants as c
+import src.game_logic as connect6
+import src.constants as c
 import math
 
 class AlphaBetaPruning:
