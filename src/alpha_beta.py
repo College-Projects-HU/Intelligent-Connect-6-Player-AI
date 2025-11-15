@@ -15,7 +15,7 @@ class AlphaBetaPruning:
             Otherwise, returns heuristic value (for god's sake, get it done by next sunday)
         """
         if win:
-            winner = game.get_winner(game.last_x, game.last_y)
+            winner = game.board.grid[game.last_x][game.last_y]
             return math.inf if winner == c.AI else -math.inf
         elif draw:
             return 0
