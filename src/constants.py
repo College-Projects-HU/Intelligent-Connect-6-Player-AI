@@ -5,3 +5,6 @@ EMPTY = '.'
 
 PLAYER = 'X'
 AI = 'O'
+
+EVAL1 = "heuristic_1"
+EVAL2 = "heuristic_2"
