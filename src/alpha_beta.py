@@ -3,47 +3,41 @@ import constants as c
 import math
 
 class AlphaBetaPruning:
-    def __init__(self, game, max_depth=c.DEFUALT_DEPTH):
+    def __init__(self, game, heuristic, max_depth=c.DEFUALT_DEPTH):
         self.game = game
         self.max_depth = max_depth
+        self.heuristic = heuristic
 
-    
-    def get_opponent(self, player):
-        return c.AI if player == c.PLAYER else c.AI 
-    
-    def evaluate_board(self, game):
+    def __evaluate_board(self, game, win, draw):
         """
-            Evaluation function that takes a game and return a number\n
+            Evaluation function that takes a game and returns a number\n
             Returns inf/-inf for max/min winning states\n
-            Otherwise, returns heuristic value 
+            Otherwise, returns heuristic value (for god's sake, get it done by next sunday)
         """
-        # Check for wins first
-        win = game.check_winner(game.last_x, game.last_y)
-        winner = game.get_winner(game.last_x, game.last_y)
-        
         if win:
+            winner = game.get_winner(game.last_x, game.last_y)
             return math.inf if winner == c.AI else -math.inf
-        elif game.check_draw():
+        elif draw:
             return 0
         else:
-            # If no win, return a heuristic score (implement your own logic here)
-            # Placeholder - implement proper board evaluation
-            return 0 
-    
+            if self.heuristic == c.EVAL1:
+                return 0 # Replaced by heuristic_1
+            else:
+                return 0 # Replaced by heuristic_2 
+
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         win = game.check_winner(game.last_x, game.last_y)
         draw = game.check_draw()
         
         if (not depth) or draw or win:
-            return self.evaluate_board(game) 
+            return self.__evaluate_board(game, win, draw) 
     
         if maximizing_player:
-            return self.max_node(game, depth, alpha, beta)
+            return self.__max_node(game, depth, alpha, beta)
         else:
-            return self.min_node(game, depth, alpha, beta)
+            return self.__min_node(game, depth, alpha, beta)
     
-    
-    def max_node(self, game, depth, alpha, beta):
+    def __max_node(self, game, depth, alpha, beta):
         max_score = -math.inf
         orig_r, orig_c = game.last_row, game.last_col
         outer_break = False  # pruning ya 4bab
@@ -52,14 +46,14 @@ class AlphaBetaPruning:
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board[x1][y1] = game.current_player  # SET FIRST STONE
+            game.board[x1][y1] = c.AI  # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
 
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
                 
-                game.board[x2][y2] = game.current_player # SET SECOND STONE
+                game.board[x2][y2] = c.AI # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
 
@@ -80,32 +74,33 @@ class AlphaBetaPruning:
                     outer_break = True
                     break
 
-            # Reset first stone
+            # clear 1st stone
             game.board[x1][y1] = c.EMPTY
-
+            
             if outer_break: break
 
         game.last_row = orig_r
         game.last_col = orig_c
+        
         return max_score
         
-    def min_node(self, game, depth, alpha, beta):
+    def __min_node(self, game, depth, alpha, beta):
         min_score = math.inf
         orig_r, orig_c = game.last_row, game.last_col
         outer_break = False  # pruning ya 4bab
-        
+
         moves = game.get_available_moves()
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board[x1][y1] = game.current_player  # SET FIRST STONE
+            game.board[x1][y1] = c.PLAYER  # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
-    
+
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
                 
-                game.board[x2][y2] = game.current_player  # SET SECOND STONE
+                game.board[x2][y2] = c.PLAYER  # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
     
@@ -143,13 +138,13 @@ class AlphaBetaPruning:
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board[x1][y1] = game.current_player # SET FIRST STONE
+            game.board[x1][y1] = c.AI # SET FIRST STONE
             game.last_row = x1
             game.last_col = y1
 
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
-                game.board[x2][y2] = game.current_player # SET SECOND STONE
+                game.board[x2][y2] = c.AI # SET SECOND STONE
                 game.last_row = x2
                 game.last_col = y2
     
