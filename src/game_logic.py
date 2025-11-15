@@ -110,15 +110,15 @@ class Connect6Game:
         try:
             if self.ai_algorithm == 'minimax':
                 from src.minimax import minimax
-                score, best_moves = minimax(self, depth, True)  # True = maximizing player (AI)
+                best_moves = minimax(self, depth, True)  # True = maximizing player (AI)
                 # If algorithm returns valid moves, use them
                 if best_moves and len(best_moves) == required_moves:
                     # Validate that all moves are still available
                     if all(move in available_moves for move in best_moves):
                         return best_moves
             elif self.ai_algorithm == 'alpha_beta':
-                from src.alpha_beta import alpha_beta
-                score, best_moves = alpha_beta(self, depth, float('-inf'), float('inf'), True)
+                from src.alpha_beta import AlphaBetaPruning
+                best_moves = AlphaBetaPruning(self, self.heuristic,depth).find_best_move(self)
                 # If algorithm returns valid moves, use them
                 if best_moves and len(best_moves) == required_moves:
                     # Validate that all moves are still available
