@@ -21,7 +21,10 @@ class Connect6Game:
         self.ai_player = ai_player
         self.ai_algorithm = ai_algorithm  # 'minimax' or 'alpha_beta'
         self.heuristic = heuristic  # 'heuristic_1' or 'heuristic_2'
-    
+        self.last_row = None
+        self.last_col = None
+
+
     def set_ai_config(self, algorithm, heuristic):
         """
         Set the AI algorithm and heuristic to use.
