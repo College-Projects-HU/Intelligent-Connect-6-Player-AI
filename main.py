@@ -162,10 +162,10 @@ def main_gui():
 
 def main():
     """Main entry point. Launches GUI by default, or console if --console flag is used."""
-    if len(sys.argv) > 1 and sys.argv[1] == "--console":
-        main_console()
-    else:
-        main_gui()
+    # if len(sys.argv) > 1 and sys.argv[1] == "--console":
+    main_console()
+    # else:
+        # main_gui()
 
 if __name__ == "__main__":
     main()
