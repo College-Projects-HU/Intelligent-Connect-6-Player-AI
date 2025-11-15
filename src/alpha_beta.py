@@ -75,7 +75,7 @@ class AlphaBetaPruning:
                     break
 
             # clear 1st stone
-            game.board[x1][y1] = c.EMPTY
+            game.board.grid[x1][y1] = c.EMPTY
             
             if outer_break: break
 
