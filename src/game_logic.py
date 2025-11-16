@@ -23,6 +23,8 @@ class Connect6Game:
         self.heuristic = heuristic  # 'heuristic_1' or 'heuristic_2'
         self.last_row = None
         self.last_col = None
+        # Maintain a set of available moves for O(1) access instead of O(n^2) scanning
+        self.available_moves = {(i, j) for i in range(size) for j in range(size)}
 
 
     def set_ai_config(self, algorithm, heuristic):
@@ -48,13 +50,21 @@ class Connect6Game:
         self.current_player = 'O' if self.current_player == 'X' else 'X'
 
     def get_available_moves(self):
-        """Get all available empty positions on the board."""
-        return [
-            (i, j)
-            for i in range(self.board.size)
-            for j in range(self.board.size)
-            if self.board.grid[i][j] == '.'
-        ]
+        """
+        Get all available empty positions on the board.
+        Optimized to O(1) by maintaining a set of available moves.
+        Returns a list of (x, y) tuples.
+        """
+        return list(self.available_moves)
+    
+    def _remove_move(self, x, y):
+        """Remove a move from the available moves set when it's placed."""
+        self.available_moves.discard((x, y))
+    
+    def _add_move(self, x, y):
+        """Add a move back to the available moves set when it's undone."""
+        if 0 <= x < self.board.size and 0 <= y < self.board.size:
+            self.available_moves.add((x, y))
     
     def is_draw(self):
         """
@@ -181,10 +191,13 @@ class Connect6Game:
         new_game.board = self.board.copy()
         new_game.current_player = player
         new_game.first_move = self.first_move
+        # Copy the available moves set
+        new_game.available_moves = self.available_moves.copy()
         
         # Apply the moves
         for x, y in moves:
             new_game.board.place_move(x, y, player)
+            new_game._remove_move(x, y)
         
         # Update first_move flag if needed
         if new_game.first_move:
@@ -272,6 +285,8 @@ class Connect6Game:
         for (x, y) in moves:
             # place_move should succeed because we already validated
             self.board.place_move(x, y, self.current_player)
+            # Update available moves set
+            self._remove_move(x, y)
 
             # 3. Check for winner after each placed stone
             if self.check_winner(x, y):
