@@ -14,6 +14,7 @@ class AlphaBetaPruning:
             Returns inf/-inf for max/min winning states\n
             Otherwise, returns heuristic value (for god's sake, get it done by next sunday)
         """
+        # print(game.last_row)
         if win:
             winner = game.board.grid[game.last_row][game.last_col]
             return math.inf if winner == c.AI else -math.inf
@@ -27,7 +28,7 @@ class AlphaBetaPruning:
 
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         win = game.check_winner(game.last_row, game.last_col)
-        draw = game.check_draw()
+        draw = game.is_draw()
         
         if (not depth) or draw or win:
             return self.__evaluate_board(game, win, draw) 
