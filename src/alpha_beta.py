@@ -1,5 +1,6 @@
 import src.game_logic as connect6
 import src.constants as c
+import src.heuristics as eval
 import math
 
 class AlphaBetaPruning:
@@ -22,9 +23,9 @@ class AlphaBetaPruning:
             return 0
         else:
             if self.heuristic == c.EVAL1:
-                return 0 # Replaced by heuristic_1
+                return eval.heuristic_1(game)
             else:
-                return 0 # Replaced by heuristic_2 
+                return eval.heuristic_2(game)
 
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         win = game.check_winner(game.last_row, game.last_col)
