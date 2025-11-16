@@ -1,5 +1,6 @@
 import src.game_logic as connect6
 import src.constants as c
+import src.heuristics as eval
 import math
 
 class AlphaBetaPruning:
@@ -14,20 +15,21 @@ class AlphaBetaPruning:
             Returns inf/-inf for max/min winning states\n
             Otherwise, returns heuristic value (for god's sake, get it done by next sunday)
         """
+        # print(game.last_row)
         if win:
-            winner = game.get_winner(game.last_x, game.last_y)
+            winner = game.board.grid[game.last_row][game.last_col]
             return math.inf if winner == c.AI else -math.inf
         elif draw:
             return 0
         else:
             if self.heuristic == c.EVAL1:
-                return 0 # Replaced by heuristic_1
+                return eval.heuristic_1(game)
             else:
-                return 0 # Replaced by heuristic_2 
+                return eval.heuristic_2(game)
 
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
-        win = game.check_winner(game.last_x, game.last_y)
-        draw = game.check_draw()
+        win = game.check_winner(game.last_row, game.last_col)
+        draw = game.is_draw()
         
         if (not depth) or draw or win:
             return self.__evaluate_board(game, win, draw) 
@@ -75,7 +77,7 @@ class AlphaBetaPruning:
                     break
 
             # clear 1st stone
-            game.board[x1][y1] = c.EMPTY
+            game.board.grid[x1][y1] = c.EMPTY
             
             if outer_break: break
 
@@ -149,7 +151,7 @@ class AlphaBetaPruning:
                 game.last_col = y2
     
                 # What's going to happen from now on?
-                score = self.alpha_beta(game, game.depth, -math.inf, math.inf, False)
+                score = self.alpha_beta(game, self.max_depth, -math.inf, math.inf, False)
     
                 if score >= best_score:
                     best_score = score
