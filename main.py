@@ -123,7 +123,9 @@ def main_console():
             print(f"\nAI (Player {game.ai_player}) is thinking using {algorithm} with {heuristic}...")
             
             # Get AI move from the algorithm
-            ai_moves = game.get_ai_move(depth=3)  # depth can be adjusted for AI strength
+            # Use depth 2 for alpha-beta (faster), depth 3 for minimax
+            ai_depth = 2 if algorithm == 'alpha_beta' else 3
+            ai_moves = game.get_ai_move(depth=ai_depth)  # depth can be adjusted for AI strength
             
             if not ai_moves:
                 print("AI Error: No valid moves available!")
@@ -162,10 +164,10 @@ def main_gui():
 
 def main():
     """Main entry point. Launches GUI by default, or console if --console flag is used."""
-    if len(sys.argv) > 1 and sys.argv[1] == "--console":
-        main_console()
-    else:
-        main_gui()
+    # if len(sys.argv) > 1 and sys.argv[1] == "--console":
+    main_console()
+    # else:
+        # main_gui()
 
 if __name__ == "__main__":
     main()
