@@ -15,7 +15,7 @@ class AlphaBetaPruning:
             Otherwise, returns heuristic value (for god's sake, get it done by next sunday)
         """
         if win:
-            winner = game.board.grid[game.last_x][game.last_y]
+            winner = game.board.grid[game.last_row][game.last_col]
             return math.inf if winner == c.AI else -math.inf
         elif draw:
             return 0
@@ -26,7 +26,7 @@ class AlphaBetaPruning:
                 return 0 # Replaced by heuristic_2 
 
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
-        win = game.check_winner(game.last_x, game.last_y)
+        win = game.check_winner(game.last_row, game.last_col)
         draw = game.check_draw()
         
         if (not depth) or draw or win:
@@ -149,7 +149,7 @@ class AlphaBetaPruning:
                 game.last_col = y2
     
                 # What's going to happen from now on?
-                score = self.alpha_beta(game, game.depth, -math.inf, math.inf, False)
+                score = self.alpha_beta(game, self.max_depth, -math.inf, math.inf, False)
     
                 if score >= best_score:
                     best_score = score
