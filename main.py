@@ -7,13 +7,13 @@ from src.gui import Connect6GUI
 def get_board_size():
     """
     Get board size from user with validation (6-19).
-    
+
     Returns:
         int: Valid board size between 6 and 19
     """
     print("=== Connect 6 Game Setup ===")
     print()
-    
+
     while True:
         try:
             size_input = input("Enter board size (6-19): ").strip()

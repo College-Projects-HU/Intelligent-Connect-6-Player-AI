@@ -125,6 +125,11 @@ class Connect6Game:
                 from src.minimax import minimax
                 # minimax returns (score, moves). Unpack properly.
                 result = minimax(self, depth, True)
+                # Debug: show raw minimax return so we can verify the moves used
+                try:
+                    print(f"[get_ai_move] minimax raw result: {result}")
+                except Exception:
+                    pass
                 if isinstance(result, tuple) and len(result) == 2:
                     _, best_moves = result
                 else:
@@ -134,6 +139,12 @@ class Connect6Game:
                 if best_moves and len(best_moves) == required_moves:
                     # Validate that all moves are still available
                     if all(move in available_moves for move in best_moves):
+                        # Display chosen moves (1-based coords for user clarity)
+                        try:
+                            disp = [(m[0] + 1, m[1] + 1) for m in best_moves]
+                            print(f"AI chooses: {disp}")
+                        except Exception:
+                            print(f"AI chooses: {best_moves}")
                         return best_moves
             elif self.ai_algorithm == 'alpha_beta':
                 from src.alpha_beta import AlphaBetaPruning
@@ -142,6 +153,11 @@ class Connect6Game:
                 if best_moves and len(best_moves) == required_moves:
                     # Validate that all moves are still available
                     if all(move in available_moves for move in best_moves):
+                        try:
+                            disp = [(m[0] + 1, m[1] + 1) for m in best_moves]
+                            print(f"AI chooses: {disp}")
+                        except Exception:
+                            print(f"AI chooses: {best_moves}")
                         return best_moves
         except Exception as e:
             # If algorithm implementation has errors, fall back to simple strategy
@@ -150,7 +166,13 @@ class Connect6Game:
         # Fallback: If algorithms are not implemented or return invalid moves,
         # use a simple strategy (pick first available moves)
         # TODO: Remove this fallback once algorithms are fully implemented
-        return available_moves[:required_moves]
+        chosen = available_moves[:required_moves]
+        try:
+            disp = [(m[0] + 1, m[1] + 1) for m in chosen]
+            print(f"AI chooses (fallback): {disp}")
+        except Exception:
+            print(f"AI chooses (fallback): {chosen}")
+        return chosen
 
     def evaluate_position(self):
         """

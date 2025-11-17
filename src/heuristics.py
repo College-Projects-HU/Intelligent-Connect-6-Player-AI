@@ -89,7 +89,8 @@ def heuristic_2(game_state):
     
     # Weights for different sequence lengths
     weights = {2: 1, 3: 10, 4: 100, 5: 1000}
-    threat_weight = 5000  # Very high weight for threats
+    threat_weight = 7000  # Very high weight for threats (increase)
+    open4_weight = 1500    # Weight for open-4 threats (needs blocking)
     
     # Check all positions on the board
     for i in range(size):
@@ -152,6 +153,23 @@ def heuristic_2(game_state):
                             score += threat_weight
                         else:
                             score -= threat_weight
+
+                # Check for open-4 (four in a row with at least one open end)
+                if count == 4:
+                    end1_x, end1_y = i + dx * count, j + dy * count
+                    end2_x, end2_y = i - dx * count, j - dy * count
+                    open_end = False
+                    if (0 <= end1_x < size and 0 <= end1_y < size and
+                        game_state.board.grid[end1_x][end1_y] == '.'):
+                        open_end = True
+                    if (0 <= end2_x < size and 0 <= end2_y < size and
+                        game_state.board.grid[end2_x][end2_y] == '.'):
+                        open_end = True
+                    if open_end:
+                        if is_ai:
+                            score += open4_weight
+                        else:
+                            score -= open4_weight
     
     return score
 
