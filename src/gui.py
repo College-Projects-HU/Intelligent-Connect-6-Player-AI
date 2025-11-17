@@ -405,7 +405,7 @@ class Connect6GUI:
         self.root.update()  # Force GUI update
         
         # Get AI move from the algorithm
-        ai_moves = self.game.get_ai_move(depth=3)  # depth can be adjusted for AI strength
+        ai_moves = self.game.get_ai_move(depth=2)  # depth can be adjusted for AI strength
         
         if not ai_moves:
             # No valid moves available (shouldn't happen in normal play)

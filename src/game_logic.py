@@ -92,7 +92,7 @@ class Connect6Game:
         
         return False
 
-    def get_ai_move(self, depth=3):
+    def get_ai_move(self, depth=2):
         """
         Get the AI's move using the specified algorithm.
         
@@ -123,7 +123,13 @@ class Connect6Game:
         try:
             if self.ai_algorithm == 'minimax':
                 from src.minimax import minimax
-                best_moves = minimax(self, depth, True)  # True = maximizing player (AI)
+                # minimax returns (score, moves). Unpack properly.
+                result = minimax(self, depth, True)
+                if isinstance(result, tuple) and len(result) == 2:
+                    _, best_moves = result
+                else:
+                    best_moves = result
+
                 # If algorithm returns valid moves, use them
                 if best_moves and len(best_moves) == required_moves:
                     # Validate that all moves are still available
@@ -195,31 +201,51 @@ class Connect6Game:
         new_game.available_moves = self.available_moves.copy()
         
         # Apply the moves
+        last = None
         for x, y in moves:
             new_game.board.place_move(x, y, player)
             new_game._remove_move(x, y)
-        
+            last = (x, y)
+
         # Update first_move flag if needed
         if new_game.first_move:
             new_game.first_move = False
         else:
             # Switch player after applying moves (simulating a turn)
             new_game.switch_player()
-        
+
+        # Record last move position(s)
+        if last:
+            new_game.last_row, new_game.last_col = last
+
+        # If the simulated moves were made by the human, record them as the
+        # last human moves so search heuristics can focus around them.
+        if player == self.human_player:
+            new_game.last_human_moves = set(moves)
+
         return new_game
 
     def check_winner(self, x, y):
         directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+        # Determine which player's stone is at (x, y). This makes the check
+        # independent of `self.current_player` and safe to call on simulated
+        # game states where `current_player` might have been switched.
+        if not (0 <= x < self.board.size and 0 <= y < self.board.size):
+            return False
+        player = self.board.grid[x][y]
+        if player == '.':
+            return False
+
         for dx, dy in directions:
             count = 1
             i, j = x + dx, y + dy
             while 0 <= i < self.board.size and 0 <= j < self.board.size and \
-                  self.board.grid[i][j] == self.current_player:
+                  self.board.grid[i][j] == player:
                 count += 1
                 i += dx; j += dy
             i, j = x - dx, y - dy
             while 0 <= i < self.board.size and 0 <= j < self.board.size and \
-                  self.board.grid[i][j] == self.current_player:
+                  self.board.grid[i][j] == player:
                 count += 1
                 i -= dx; j -= dy
             if count >= 6:
@@ -281,12 +307,15 @@ class Connect6Game:
             print("Invalid move(s):", reason)
             return False  # Do not change the board or switch players
 
+
         # 2. Place moves (safe to do now)
+        last = None
         for (x, y) in moves:
             # place_move should succeed because we already validated
             self.board.place_move(x, y, self.current_player)
             # Update available moves set
             self._remove_move(x, y)
+            last = (x, y)
 
             # 3. Check for winner after each placed stone
             if self.check_winner(x, y):
@@ -303,6 +332,12 @@ class Connect6Game:
         # After the very first move, switch off the single-move mode
         if self.first_move:
             self.first_move = False
+
+        # Record last move coordinates and last human moves (if human played)
+        if last:
+            self.last_row, self.last_col = last
+            if self.current_player == self.human_player:
+                self.last_human_moves = set(moves)
 
         # Switch player for next turn
         self.switch_player()
