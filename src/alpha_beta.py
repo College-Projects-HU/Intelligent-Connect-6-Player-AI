@@ -44,7 +44,7 @@ class AlphaBetaPruning:
         orig_r, orig_c = game.last_row, game.last_col
         outer_break = False  # pruning ya 4bab
         
-        moves = game.get_available_moves()
+        moves = self.get_prioritized_moves(game, limit= 15)
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
@@ -86,7 +86,7 @@ class AlphaBetaPruning:
         orig_r, orig_c = game.last_row, game.last_col
         outer_break = False  # pruning ya 4bab
 
-        moves = game.get_available_moves()
+        moves = self.get_prioritized_moves(game, limit= 15)
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
@@ -94,7 +94,7 @@ class AlphaBetaPruning:
             
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
-                self.set_stone(x1, y1, c.PLAYER)
+                self.set_stone(x2, y2, c.PLAYER)
                 
                 # What's going to happen from now on?
                 score = self.alpha_beta(game, depth - 1, alpha, beta, True)  # True for maximizing next
@@ -121,44 +121,94 @@ class AlphaBetaPruning:
         game.last_col = orig_c
         return min_score  # Return min_score instead of max_score
     
+    def get_prioritized_moves(self, game, limit=None):
+        """
+        Get moves prioritized by proximity to existing stones.
+        This DRASTICALLY reduces the branching factor.
+        """
+        all_moves = game.get_available_moves()  # ✅ FIXED
+        
+        # If board is empty or nearly empty, return center area moves
+        if len(all_moves) >= (game.board.size * game.board.size - 5):
+            center = game.board.size // 2
+            center_moves = [
+                (x, y) for x, y in all_moves 
+                if abs(x - center) <= 3 and abs(y - center) <= 3
+            ]
+            return center_moves[:limit] if limit else center_moves
+        
+        # Otherwise, only consider moves near existing stones (within 2 cells)
+        relevant_moves = set()
+        for x in range(game.board.size):
+            for y in range(game.board.size):
+                if game.board.grid[x][y] != c.EMPTY:
+                    # Add all empty cells within radius 2
+                    for dx in range(-2, 3):
+                        for dy in range(-2, 3):
+                            nx, ny = x + dx, y + dy
+                            if (0 <= nx < game.board.size and 
+                                0 <= ny < game.board.size and 
+                                game.board.grid[nx][ny] == c.EMPTY):
+                                relevant_moves.add((nx, ny))
+        
+        result = list(relevant_moves)
+        # Further limit if needed
+        if limit and len(result) > limit:
+            # Prioritize center moves
+            center = game.board.size // 2
+            result.sort(key=lambda m: abs(m[0] - center) + abs(m[1] - center))
+            result = result[:limit]
+        
+        return result if result else all_moves[:limit] if limit else all_moves
+        
     def find_best_move(self, game):
+        """
+        Find the best move(s) for the current player.
+        Returns a list of move tuples: [(x1, y1)] for first move, [(x1, y1), (x2, y2)] otherwise.
+        """
         best_score = -math.inf
-        best_move = None
-        orig_r, orig_c = game.last_row, game.last_col
-        moves = game.get_available_moves()
+        best_moves = None
+        
+        # Use prioritized moves to reduce search space
+        moves = self.get_prioritized_moves(game, limit=15)  # Limit to top 15 moves
+        
+        if game.first_move:
+            # First move: only place one stone in the center area
+            center = game.board.size // 2
+            best_moves = [(center, center)]
+            return best_moves
+        
+        # Regular move: place two stones
+        alpha = -math.inf
+        beta = math.inf
         
         for i in range(len(moves)):
             x1, y1 = moves[i]
-            game.board.grid[x1][y1] = c.AI # SET FIRST STONE
-            game.last_row = x1
-            game.last_col = y1
-
+            self.set_stone(x1, y1, c.AI)
+            
             for j in range(i + 1, len(moves)):
                 x2, y2 = moves[j]
-                game.board.grid[x2][y2] = c.AI # SET SECOND STONE
-                game.last_row = x2
-                game.last_col = y2
-    
-                # What's going to happen from now on?
-                score = self.alpha_beta(game, self.max_depth, -math.inf, math.inf, False)
-    
-                if score >= best_score:
-                    best_score = score
-                    best_move = [(x1, y1), (x2, y2)]
-    
-                # Reset second stone
-                game.board.grid[x2][y2] = c.EMPTY
-                # Restore state to *after move 1*
+                self.set_stone(x2, y2, c.AI)
+                
+                # Evaluate this move combination
+                score = self.alpha_beta(game, self.max_depth - 1, alpha, beta, False)
+                
+                # Restore board state
+                self.remove_stone(x2, y2)
                 game.last_row = x1
                 game.last_col = y1
+                
+                # Update best move
+                if score > best_score:
+                    best_score = score
+                    best_moves = [(x1, y1), (x2, y2)]
+                
+                alpha = max(alpha, score)
+            
+            # Remove first stone
+            self.remove_stone(x1, y1)
         
-        # Reset first stone
-        game.board.grid[x1][y1] = c.EMPTY
-        # 2. Restore the *original* state
-        game.last_row = orig_r
-        game.last_col = orig_c
-    
-        return best_move
+        return best_moves if best_moves else [moves[0], moves[1]] if len(moves) >= 2 else []
 
 
     def set_stone(self, x, y, stone):
