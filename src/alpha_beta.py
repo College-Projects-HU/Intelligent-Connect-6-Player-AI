@@ -10,7 +10,6 @@ class AlphaBetaPruning:
         self.max_depth = max_depth
         self.heuristic = heuristic
         self.limit = 20
-        # ✅ ADD: Statistics tracking
         self.nodes_explored = 0
         self.nodes_pruned = 0
         self.start_time = None
@@ -65,7 +64,6 @@ class AlphaBetaPruning:
         return max_consecutive
 
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
-        # ✅ ADD: Count nodes explored
         self.nodes_explored += 1
         
         if game.last_row is not None and game.last_col is not None:
@@ -106,7 +104,7 @@ class AlphaBetaPruning:
                 alpha = max(alpha, score)
                 
                 if beta <= alpha:
-                    self.nodes_pruned += 1  # ✅ ADD: Count pruned nodes
+                    self.nodes_pruned += 1
                     self.remove_stone(x1, y1)
                     game.last_row = orig_r
                     game.last_col = orig_c
@@ -142,7 +140,7 @@ class AlphaBetaPruning:
                 beta = min(beta, score)
                 
                 if beta <= alpha:
-                    self.nodes_pruned += 1  # ✅ ADD: Count pruned nodes
+                    self.nodes_pruned += 1
                     self.remove_stone(x1, y1)
                     game.last_row = orig_r
                     game.last_col = orig_c
@@ -248,7 +246,7 @@ class AlphaBetaPruning:
         return unique[:limit] if limit else unique
         
     def find_best_move(self, game):
-        # ✅ ADD: Reset and start timing
+        # Reset and start timing
         self.nodes_explored = 0
         self.nodes_pruned = 0
         self.start_time = time.time()
@@ -323,7 +321,7 @@ class AlphaBetaPruning:
             
             self.remove_stone(x1, y1)
         
-        # ✅ ADD: Calculate and print statistics
+        # Print Console Details :)) (ya rb fok el dy2a)
         elapsed_time = time.time() - self.start_time
         
         print(f"==== Alpha Beta at depth {self.max_depth} ====")
@@ -331,7 +329,7 @@ class AlphaBetaPruning:
         print(f"Pruned {self.nodes_pruned:} times")
         print(f"Time Taken: {elapsed_time:.2f} seconds")
         print(f"Best Move Returned From AlphaBetaPurning Class: {best_moves}")
-        print(f"📈 Best Score: {best_score}")
+        print(f"Best Score: {best_score}")
         return best_moves if best_moves else [moves[0], moves[1]]
 
     def set_stone(self, x, y, stone):
