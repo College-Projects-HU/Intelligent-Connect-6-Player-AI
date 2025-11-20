@@ -3,7 +3,7 @@
 import sys
 from src.game_logic import Connect6Game
 from src.gui import Connect6GUI
-import src.constants as c
+
 def get_board_size():
     """
     Get board size from user with validation (6-19).
@@ -123,8 +123,7 @@ def main_console():
             print(f"\nAI (Player {game.ai_player}) is thinking using {algorithm} with {heuristic}...")
             
             # Get AI move from the algorithm
-            # Use depth 2 for alpha-beta (faster), depth 3 for minimax
-            ai_depth = c.DEFUALT_DEPTH if algorithm == 'alpha_beta' else 3
+            ai_depth = 1 if algorithm == 'minimax' else 2 
             ai_moves = game.get_ai_move(depth=ai_depth)  # depth can be adjusted for AI strength
             
             if not ai_moves:
