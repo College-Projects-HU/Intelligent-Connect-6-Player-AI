@@ -2,13 +2,18 @@ import src.game_logic as connect6
 import src.constants as c
 import src.heuristics as eval
 import math
+import time  # ✅ ADD: Import time
 
 class AlphaBetaPruning:
-    def __init__(self, game, heuristic, max_depth=c.DEFUALT_DEPTH):
+    def __init__(self, game, heuristic, max_depth=c.ALPHA_BETA_DETPH):
         self.game = game
         self.max_depth = max_depth
         self.heuristic = heuristic
         self.limit = 20
+        # ✅ ADD: Statistics tracking
+        self.nodes_explored = 0
+        self.nodes_pruned = 0
+        self.start_time = None
 
     def __evaluate_board(self, game, win, draw):
         if win:
@@ -60,6 +65,9 @@ class AlphaBetaPruning:
         return max_consecutive
 
     def alpha_beta(self, game, depth, alpha, beta, maximizing_player):
+        # ✅ ADD: Count nodes explored
+        self.nodes_explored += 1
+        
         if game.last_row is not None and game.last_col is not None:
             win = game.check_winner(game.last_row, game.last_col)
         else:
@@ -98,6 +106,7 @@ class AlphaBetaPruning:
                 alpha = max(alpha, score)
                 
                 if beta <= alpha:
+                    self.nodes_pruned += 1  # ✅ ADD: Count pruned nodes
                     self.remove_stone(x1, y1)
                     game.last_row = orig_r
                     game.last_col = orig_c
@@ -133,6 +142,7 @@ class AlphaBetaPruning:
                 beta = min(beta, score)
                 
                 if beta <= alpha:
+                    self.nodes_pruned += 1  # ✅ ADD: Count pruned nodes
                     self.remove_stone(x1, y1)
                     game.last_row = orig_r
                     game.last_col = orig_c
@@ -238,6 +248,11 @@ class AlphaBetaPruning:
         return unique[:limit] if limit else unique
         
     def find_best_move(self, game):
+        # ✅ ADD: Reset and start timing
+        self.nodes_explored = 0
+        self.nodes_pruned = 0
+        self.start_time = time.time()
+        
         if game.first_move:
             center = game.board.size // 2
             return [(center, center)]
@@ -308,6 +323,15 @@ class AlphaBetaPruning:
             
             self.remove_stone(x1, y1)
         
+        # ✅ ADD: Calculate and print statistics
+        elapsed_time = time.time() - self.start_time
+        
+        print(f"==== Alpha Beta at depth {self.max_depth} ====")
+        print(f"Nodes Explored: {self.nodes_explored:,}")
+        print(f"Pruned {self.nodes_pruned:} times")
+        print(f"Time Taken: {elapsed_time:.2f} seconds")
+        print(f"Best Move Returned From AlphaBetaPurning Class: {best_moves}")
+        print(f"📈 Best Score: {best_score}")
         return best_moves if best_moves else [moves[0], moves[1]]
 
     def set_stone(self, x, y, stone):
