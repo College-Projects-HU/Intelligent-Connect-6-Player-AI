@@ -5,7 +5,7 @@ import math
 import time  # ✅ ADD: Import time
 
 class AlphaBetaPruning:
-    def __init__(self, game, heuristic, max_depth=c.ALPHA_BETA_DETPH):
+    def __init__(self, game, heuristic, max_depth=c.ALPHA_BETA_DEPTH):
         self.game = game
         self.max_depth = max_depth
         self.heuristic = heuristic

@@ -65,7 +65,7 @@ class Connect6Game:
         """Add a move back to the available moves set when it's undone."""
         if 0 <= x < self.board.size and 0 <= y < self.board.size:
             self.available_moves.add((x, y))
-    
+
     def is_draw(self):
         """
         Check if the game is in a draw state.

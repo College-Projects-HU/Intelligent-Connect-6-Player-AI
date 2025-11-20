@@ -61,8 +61,12 @@ class Board:
         return True
         
     def undo_move(self, x, y):
+        """
+        Undo a previously placed move and restore the empty cell count.
+        """
         if self.grid[x][y] != c.EMPTY:
             self.grid[x][y] = c.EMPTY
+            self.empty_cells += 1
             return True
         return False
 

@@ -1,6 +1,7 @@
 # main.py
 
 import sys
+import src.constants as c
 from src.game_logic import Connect6Game
 from src.gui import Connect6GUI
 
@@ -123,7 +124,7 @@ def main_console():
             print(f"\nAI (Player {game.ai_player}) is thinking using {algorithm} with {heuristic}...")
             
             # Get AI move from the algorithm
-            ai_depth = 1 if algorithm == 'minimax' else 2 
+            ai_depth = c.MINI_MAX_DEPTH if algorithm == 'minimax' else c.ALPHA_BETA_DEPTH 
             ai_moves = game.get_ai_move(depth=ai_depth)  # depth can be adjusted for AI strength
             
             if not ai_moves:
@@ -164,7 +165,7 @@ def main_gui():
 def main():
     """Main entry point. Launches GUI by default, or console if --console flag is used."""
     if len(sys.argv) > 1 and sys.argv[1] == "--console":
-         main_console()
+        main_console()
     else:
          main_gui()
 

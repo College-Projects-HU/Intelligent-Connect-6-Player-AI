@@ -1,6 +1,7 @@
 # src/gui.py
 
 import tkinter as tk
+import src.constants as c
 from tkinter import messagebox, simpledialog
 from src.game_logic import Connect6Game
 
@@ -67,6 +68,7 @@ class Connect6GUI:
         self.cell_size = 25  # Size of each cell in pixels
         self.margin = self.cell_size  # Space around the board for labels/border
         self.selected_moves = []  # Moves selected in current turn
+        self.last_human_turn = None  # Data needed to undo last human move if AI choice is cancelled
         self.game_over = False
         self.human_player = human_player
         self.ai_player = ai_player
@@ -276,10 +278,15 @@ class Connect6GUI:
     
     def play_turn(self):
         """Play the selected moves for the human player, then trigger AI move if game continues."""
-        # Play human player's turn
+        # Capture the state before playing so we can undo if needed
+        human_turn_state = None
+        if self.game.is_human_turn():
+            human_turn_state = self._capture_human_turn_state()
+
         if self.game.play_turn(self.selected_moves):
             # Game ended (win or draw)
             self.game_over = True
+            self.last_human_turn = None
             self.draw_grid()
             self.update_status()
             
@@ -294,6 +301,10 @@ class Connect6GUI:
                 else:
                     messagebox.showinfo("Game Over", f"AI (Player {self.ai_player}) wins!")
         else:
+            # If the turn was invalid, current player is still human. Discard undo data.
+            if self.game.is_human_turn():
+                self.last_human_turn = None
+
             # Game continues - clear selection and update display
             self.selected_moves = []
             self.update_status()
@@ -301,6 +312,7 @@ class Connect6GUI:
             
             # If it's now AI's turn, ask user to choose algorithm first
             if self.game.is_ai_turn() and not self.game_over:
+                self.last_human_turn = human_turn_state
                 # Show dialog to choose AI algorithm
                 self.choose_ai_algorithm()
     
@@ -382,6 +394,12 @@ class Connect6GUI:
             pady=5
         )
         confirm_button.pack(side=tk.LEFT, padx=5)
+
+        def cancel_choice():
+            dialog.destroy()
+            self.handle_ai_choice_cancel()
+
+        dialog.protocol("WM_DELETE_WINDOW", cancel_choice)
     
     def play_ai_turn(self):
         """
@@ -395,17 +413,22 @@ class Connect6GUI:
         """
         if self.game_over or not self.game.is_ai_turn():
             return
+
+        # Undo data is no longer needed once AI starts its move
+        self.last_human_turn = None
         
         # Update status to show AI is thinking
-        algorithm_name = self.game.ai_algorithm.replace('_', '-').title()
+        algorithm_name = self.game.ai_algorithm
         heuristic_name = self.game.heuristic.replace('_', ' ').title()
+        algorithm_display = algorithm_name.replace('_', ' ').title()
         self.status_label.config(
-            text=f"AI (Player {self.ai_player}) is thinking using {algorithm_name} with {heuristic_name}..."
+            text=f"AI (Player {self.ai_player}) is thinking using {algorithm_display} with {heuristic_name}..."
         )
         self.root.update()  # Force GUI update
         
         # Get AI move from the algorithm
-        ai_moves = self.game.get_ai_move(depth=2)  # depth can be adjusted for AI strength
+        ai_depth = c.MINI_MAX_DEPTH if self.game.ai_algorithm == 'minimax' else c.ALPHA_BETA_DEPTH 
+        ai_moves = self.game.get_ai_move(depth=ai_depth)  # depth can be adjusted for AI strength
         
         if not ai_moves:
             # No valid moves available (shouldn't happen in normal play)
@@ -476,6 +499,7 @@ class Connect6GUI:
             heuristic=self.game.heuristic
         )
         self.selected_moves = []
+        self.last_human_turn = None
         self.game_over = False
         self.draw_grid()
         self.update_status()
@@ -533,4 +557,60 @@ class Connect6GUI:
     def run(self):
         """Start the GUI main loop."""
         self.root.mainloop()
+
+    def _capture_human_turn_state(self):
+        """
+        Capture the minimal data needed to undo the last human turn.
+        """
+        return {
+            "moves": list(self.selected_moves),
+            "first_move": self.game.first_move,
+            "current_player": self.game.current_player,
+            "last_row": self.game.last_row,
+            "last_col": self.game.last_col,
+            "had_last_human_moves": hasattr(self.game, "last_human_moves"),
+            "last_human_moves": set(getattr(self.game, "last_human_moves", set()))
+            if hasattr(self.game, "last_human_moves")
+            else None,
+        }
+
+    def undo_last_human_turn(self):
+        """
+        Undo the last confirmed human turn so they can enter a different move.
+        """
+        if not self.last_human_turn:
+            return False
+
+        state = self.last_human_turn
+        for x, y in state["moves"]:
+            if self.game.board.undo_move(x, y):
+                self.game._add_move(x, y)
+
+        self.game.current_player = state["current_player"]
+        self.game.first_move = state["first_move"]
+        self.game.last_row = state["last_row"]
+        self.game.last_col = state["last_col"]
+
+        if state["had_last_human_moves"]:
+            self.game.last_human_moves = set(state["last_human_moves"])
+        elif hasattr(self.game, "last_human_moves"):
+            del self.game.last_human_moves
+
+        self.last_human_turn = None
+        self.selected_moves = []
+        self.update_status()
+        self.draw_grid()
+        return True
+
+    def handle_ai_choice_cancel(self):
+        """
+        Handle the scenario where the AI choice dialog is dismissed
+        without selecting an algorithm by undoing the player's last move.
+        """
+        if self.undo_last_human_turn():
+            messagebox.showinfo(
+                "AI Choice Cancelled",
+                "The AI selection window was closed. "
+                "Your last move has been undone so you can play again."
+            )
 
