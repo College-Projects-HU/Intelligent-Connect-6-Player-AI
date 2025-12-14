@@ -1,8 +1,7 @@
-import src.game_logic as connect6
 import src.constants as c
 import src.heuristics as eval
 import math
-import time  # ✅ ADD: Import time
+import time
 
 class AlphaBetaPruning:
     def __init__(self, game, heuristic, max_depth=c.ALPHA_BETA_DEPTH):
@@ -26,11 +25,7 @@ class AlphaBetaPruning:
             else:
                 return eval.heuristic_2(game)
 
-    def check_threat_at_position(self, game, x, y, player, min_count=5):
-        """
-        Check if placing a stone at (x,y) creates a threat of min_count or more
-        DEFAULT: min_count=5 (detects 5-in-a-row threats that need blocking)
-        """
+    def check_threat_at_position(self, game, x, y, player):
         original = game.board.grid[x][y]
         game.board.grid[x][y] = player
         
