@@ -1,5 +1,7 @@
 ALPHA_BETA_DEPTH = 3
 MINI_MAX_DEPTH = 1
+MAX_CANDIDATES = 12
+
 
 BOARD_SIZE = 19
 EMPTY = '.'
@@ -9,3 +11,4 @@ AI = 'O'
 
 EVAL1 = "heuristic_1"
 EVAL2 = "heuristic_2"
+

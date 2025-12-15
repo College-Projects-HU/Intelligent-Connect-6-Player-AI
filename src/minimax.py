@@ -1,6 +1,7 @@
 # src/minimax.py
 import time
 from itertools import combinations
+from src.constants import MAX_CANDIDATES
 
 INF = 10**9
 DEFAULT_RADIUS = 2
@@ -138,7 +139,7 @@ def _clamp_for_leaf(v: float) -> float:
         return 0.0
 
 def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
-            max_candidates=12, max_second_per_first=6, verbose=True):
+            max_candidates=MAX_CANDIDATES, max_second_per_first=6, verbose=True):
     """
     Minimal minimax:
       - depth: recursion depth (0 == evaluate_position)
@@ -148,7 +149,7 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
     HUMAN_FOCUS_RADIUS from the last human stone(s). If that produces no candidates, fall back.
     """
     t0 = time.time()
-    required = 1 if game.first_move else 2
+    required = 2
     root_player = game.current_player
 
     avail = list(game.get_available_moves())
@@ -167,65 +168,35 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
     # already exist and would allow an immediate win next turn. If found,
     # compute blocking cells and prioritize them. This detects "you already
     # have 5 in a row" cases where we must block immediately.
-    def _find_open_runs_and_blockers(game_obj, player, run_len):
-        board = game_obj.board.grid
-        n = game_obj.board.size
-        dirs = [(1,0),(0,1),(1,1),(1,-1)]
-        blockers = set()
-        for i in range(n):
-            for j in range(n):
-                if board[i][j] != player:
-                    continue
-                for dx, dy in dirs:
-                    count = 1
-                    # forward
-                    x, y = i + dx, j + dy
-                    while 0 <= x < n and 0 <= y < n and board[x][y] == player:
-                        count += 1
-                        x += dx; y += dy
-                    end1 = (x, y)
-                    # backward
-                    x, y = i - dx, j - dy
-                    while 0 <= x < n and 0 <= y < n and board[x][y] == player:
-                        count += 1
-                        x -= dx; y -= dy
-                    end2 = (x, y)
 
-                    if count == run_len:
-                        # if either end is on-board and empty, it's a blocker
-                        ex, ey = end1
-                        if 0 <= ex < n and 0 <= ey < n and board[ex][ey] == '.':
-                            blockers.add((ex, ey))
-                        ex, ey = end2
-                        if 0 <= ex < n and 0 <= ey < n and board[ex][ey] == '.':
-                            blockers.add((ex, ey))
-        return blockers
 
-    # detect opponent (human) threats on the current board state
+    # ROOT: Detect immediate opponent threats by simulation (simpler than scanning runs)
     opponent = 'O' if root_player == 'X' else 'X'
-    # look for existing open-5 runs first (must block immediately)
-    immediate_blockers = _find_open_runs_and_blockers(game, opponent, 5)
-    if not immediate_blockers:
-        # also consider open-4 as urgent (two-move threats)
-        immediate_blockers = _find_open_runs_and_blockers(game, opponent, 4)
+    immediate_blockers = set()
+    
+    # Check if opponent can win in 1 move (requires immediate block)
+    # We only check this on available moves to be safe and simple.
+    for m in avail:
+        try:
+            # Simulate opponent move
+            sim = simulate(game, [m], opponent)
+            if is_win_after_placement(sim, m):
+                immediate_blockers.add(m)
+        except Exception:
+            pass
+            
     if immediate_blockers:
-        # ensure we only consider available cells
-        immediate_blockers = {c for c in immediate_blockers if c in avail}
-        if immediate_blockers:
-            if verbose:
-                print(f"[minimax] Found opponent open-run blockers: {sorted(immediate_blockers)}")
-            # put these at the front of candidate consideration
-            focused_candidates = (focused_candidates or set()) | immediate_blockers
-            # If blockers exist on the current board they are urgent — return them
-            # immediately as the best move(s) so the AI will block without
-            # depending on deeper probing that may be unstable.
-            chosen_blockers = sorted(immediate_blockers)[:required]
-            if chosen_blockers:
-                if verbose:
-                    print(f"[minimax] Returning immediate blockers as best moves: {chosen_blockers}")
-                elapsed = time.time() - t0
-                setattr(game, "_last_minimax_stats", {"time": elapsed, "depth": depth, "nodes": 0})
-                return 0, chosen_blockers
+        if verbose:
+            print(f"[minimax] Found immediate threats (blocking required): {sorted(immediate_blockers)}")
+        # If immediate threats exist, we MUST play them. 
+        # Since we play 2 stones, we can block up to 2 distinct threats.
+        chosen_blockers = sorted(immediate_blockers)[:required]
+        # Return immediately if we found forced blocks
+        elapsed = time.time() - t0
+        setattr(game, "_last_minimax_stats", {"time": elapsed, "depth": depth, "nodes": 0})
+        if verbose:
+             print(f"[minimax] Returning blockers: {chosen_blockers}")
+        return 0, chosen_blockers
     if focused_candidates:
         # keep order deterministic and only consider those actually available
         candidates = [c for c in sorted(focused_candidates) if c in avail]
@@ -268,7 +239,7 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
     if max_candidates and len(candidates) > max_candidates:
         candidates = candidates[:max_candidates]
     opponent = 'O' if root_player == 'X' else 'X'
-    req_opp = 1 if game.first_move else 2
+    req_opp = 2
 
     blocking_moves = set()
 
@@ -386,24 +357,25 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
                 new_candidates.append(m)
         candidates = new_candidates
 
-    # immediate root win check
+    # Step 3: Check for immediate AI win (1 move)
     for a in candidates:
         child = simulate(game, [a], root_player)
         if is_win_after_placement(child, a):
+             # Found a winning move. Return it (pair it with any other move)
             elapsed = time.time() - t0
-            stats = {"time": elapsed, "depth": depth, "nodes": 1}
-            setattr(game, "_last_minimax_stats", stats)
+            setattr(game, "_last_minimax_stats", {"time": elapsed, "depth": depth, "nodes": 1})
             if verbose:
-                print(f"[minimax] depth={depth} nodes={1} time={elapsed:.4f}s (console)")
-            if required == 1:
-                return INF, [a]
+                print(f"[minimax] Found immediate win: {a}")
+            
+            # Find a second valid move to complete the pair
+            second = None
             for b in candidates:
-                if b != a:
-                    return INF, [a, b]
-            for b in avail:
-                if b != a:
-                    return INF, [a, b]
-            return INF, [a]
+                if b != a: second = b; break
+            if not second:
+                for b in avail:
+                     if b != a: second = b; break
+            
+            return INF, [a, second] if second else [a]
 
     node_count = 0
 
@@ -418,7 +390,7 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
             # Preserve exact infinities (winning positions) but clamp ordinary evals
             return _clamp_for_leaf(v), None
 
-        req = 1 if node_game.first_move else 2
+        req = 2
         local_avail = list(node_game.get_available_moves())
 
         # same focused behavior recursively: prefer to keep search local to last human moves
@@ -440,62 +412,29 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
         best_score = -INF if maximizing else INF
         best_moves = None
 
-        # single-move nodes
-        if req == 1:
-            scored = []
-            for a in local_cand:
-                child = simulate(node_game, [a], node_game.current_player)
-                if is_win_after_placement(child, a):
-                    return (INF if maximizing else -INF), [a]
-                ps = probe_score_cached(child)
-                scored.append((_clamp_for_ordering(ps), a, child))
-            scored.sort(reverse=maximizing, key=lambda t: t[0])
-            for _, a, child in scored:
-                sc, _ = recurse(child, depth_left - 1, not maximizing)
-                if maximizing:
-                    if sc > best_score:
-                        best_score = sc
-                        best_moves = [a]
-                else:
-                    if sc < best_score:
-                        best_score = sc
-                        best_moves = [a]
-            return best_score, best_moves
-
-        # two-move nodes: check immediate first-move wins
-        for a in local_cand:
-            child_a = simulate(node_game, [a], node_game.current_player)
-            if is_win_after_placement(child_a, a):
-                second = None
-                for b in local_cand:
-                    if b != a:
-                        second = b
-                        break
-                if not second:
-                    for b in local_avail:
-                        if b != a:
-                            second = b
-                            break
-                return (INF if maximizing else -INF), [a, second or a]
-
-        # build unordered pairs
+        # Pair generation and scoring (Simpler, unified approach)
         pair_candidates = []
         if len(local_cand) >= 2:
             pair_candidates = list(combinations(local_cand, 2))
         else:
-            a = local_cand[0]
-            for b in local_avail:
-                if b != a:
-                    pair_candidates.append((a, b))
-
+            # Handle edge case where we have < 2 candidates but need 2 moves
+            if local_cand:
+                a = local_cand[0]
+                for b in local_avail:
+                    if b != a:
+                        pair_candidates.append((a, b))
+        
+        # Score pairs for sorting (Beam search preparation)
         scored_pairs = []
         for a, b in pair_candidates:
+            # Check for immediate wins first (optimization)
             child_ab = simulate(node_game, [a, b], node_game.current_player)
             if is_win_after_placement(child_ab, b) or is_win_after_placement(child_ab, a):
                 return (INF if maximizing else -INF), [a, b]
+            
             ps = probe_score_cached(child_ab)
             scored_pairs.append((_clamp_for_ordering(ps), (a, b), child_ab))
-
+        
         scored_pairs.sort(reverse=maximizing, key=lambda t: t[0])
 
         max_pairs = max_second_per_first * max(1, len(local_cand))
@@ -525,7 +464,7 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
         # console-only line (no GUI dialogs)
         print(f"[minimax] depth={depth} nodes={node_count} time={elapsed:.4f}s (console)")
 
-    req_now = 1 if game.first_move else 2
+    req_now = 2
     avail_now = list(game.get_available_moves())
     if not best_moves or len(best_moves) != req_now or any(m not in avail_now for m in best_moves):
         chosen = []
