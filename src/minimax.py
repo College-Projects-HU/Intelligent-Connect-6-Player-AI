@@ -267,25 +267,6 @@ def minimax(game, depth, maximizing_player, radius=DEFAULT_RADIUS,
     candidates = [t[3] for t in scored]
     if max_candidates and len(candidates) > max_candidates:
         candidates = candidates[:max_candidates]
-
-    # DIAGNOSTICS: print candidate distance + probe score for top candidates
-    if verbose:
-        print("[minimax] Root candidates (coord | dist | probe_score | probe_ordered):")
-        for d, negps_order, orig_ps, c in scored[: min(20, len(scored))]:
-            # distance can be float('inf') when we have no origins; format safely
-            if d == float('inf'):
-                d_fmt = ' ∞'
-            else:
-                try:
-                    d_fmt = f"{int(d):2d}"
-                except Exception:
-                    d_fmt = str(d)
-            print(f"  {c} | {d_fmt} | {orig_ps:+8.3f} | {(-negps_order):+8.3f}")
-
-    # ROOT-LEVEL THREAT DETECTION (opponent immediate wins) ---
-    # If the opponent has an immediate single-move win we'll prioritize
-    # blocking moves. For two-move immediate wins we inspect candidate pairs
-    # and prioritize any cell that would block such pairs.
     opponent = 'O' if root_player == 'X' else 'X'
     req_opp = 1 if game.first_move else 2
 
